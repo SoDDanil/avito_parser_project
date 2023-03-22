@@ -1,1 +1,0 @@
-# avito_parser_project
