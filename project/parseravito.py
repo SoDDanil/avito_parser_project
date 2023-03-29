@@ -129,5 +129,3 @@ class AvitoParser():
         self.save_to_xlsx(arrAdressResult=arrAdressResult,arrHrefResult=arrHrefResult,arrIdResult=arrIdResult,arrPriceMeterResult=arrPriceMeterResult,arrPriceResult=arrPriceResult,arrTitleResult=arrTitleResult)
 
 
-parser = AvitoParser()
-parser.collect_data()
