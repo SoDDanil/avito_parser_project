@@ -31,7 +31,7 @@ class AvitoParser():
     def get_count_pages(self,sity):
         url = f'https://www.avito.ru/{sity}/kvartiry/prodam-ASgBAgICAUSSA8YQ?p=1'
         soup = self.connection(url)
-        return soup.find_all('span',class_='styles-module-text_size_s-LNY0Q')[-1].text
+        return soup.find_all('span',class_='styles-module-text-InivV')[-1].text
     
     #метод для получения цены за квартиру 
     def get_price(self,data):
@@ -73,7 +73,7 @@ class AvitoParser():
         arrPriceMeter = []
         for temp in data:
             try:
-                priceMeter = temp.find('span',class_='price-noaccent-X6dOy price-normalizedPrice-PplY9 text-text-LurtD text-size-s-BxGpL')
+                priceMeter = temp.find(class_='styles-module-root-_KFFt styles-module-size_s-awPvv styles-module-size_s-_P6ZA stylesMarningNormal-module-root-OSCNq stylesMarningNormal-module-paragraph-s-_c6vD styles-module-noAccent-nZxz7')
                 arrPriceMeter.append(priceMeter.text)
             except:
                 arrPriceMeter.append("None")
@@ -153,6 +153,21 @@ class AvitoParser():
         year = str(datetime.now().year)
         nameXLSX = year + '.' + month + '.' + day +'.' + sity+ '.xlsx'
         return nameXLSX
+    
+    def get_date(self):
+        day = datetime.now().day
+        month = datetime.now().month
+        if datetime.now().month  < 10: 
+            month = '0'+ str(datetime.now().month)
+        else:
+            month =  str(datetime.now().month)
+        if datetime.now().day < 10:
+            day = '0' + str(datetime.now().day)
+        else:
+            day = str(datetime.now().day)
+        year = str(datetime.now().year)
+        date = year + '.' + month + '.' + day
+        return date
 
     #метод для сбора всех данных
     def collect_data(self):
@@ -160,7 +175,7 @@ class AvitoParser():
             for sity in arrSity:
                 print(sity,"---------------")
                 countPages = self.get_count_pages(sity)
-                print(int(countPages)+1)
+                print(countPages)
                 arrSquareResult = []
                 arrPriceResult = []
                 arrAdressResult = []

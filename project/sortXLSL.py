@@ -1,14 +1,22 @@
 import pandas as pd
+import openpyxl
+from openpyxl.styles import PatternFill
+from parseravito import AvitoParser
 pd.options.mode.chained_assignment = None
 
 #метод для специально сортировки
-def sort_doc(file):
+def sort_doc(file,date = 0):
     df = pd.read_excel(file)
-    sorted = df.sort_values(by=["Титул"])
+    df = df.sort_values('Цена') # сортировка по цене
+    df = df.drop_duplicates(subset=['Адрес', 'Титул'], keep='first')
     count1k = count2k = count3k = count4k =count5k = countStudio = 0
-    sorted = sorted.drop(sorted[sorted['Цена за метр']=='None'].index,axis=0)
+    df = df.dropna()
+    df = df.reset_index(drop=True)
+
+    sorted = df.sort_values(by=["Титул"])
     sorted["Комнаты"]=''
     for columnName,columnTitul in sorted['Титул'].items():
+
         if ('1-к' in columnTitul):
             sorted['Комнаты'][columnName]='1'
             count1k+=1
@@ -39,6 +47,23 @@ def sort_doc(file):
     get_count_etag()
     add_price(arrAvgPrice)
     bg_color_dataframe(arrAvgPrice)
+    
+    wb = openpyxl.load_workbook(filename = 'buf.xlsx')
+    ws = wb.active
+    ws.merge_cells('J5:O5')
+    if date =='0':
+        ws['J5'] = f'Средняя стоимость квадратного метра за дату {AvitoParser().get_date()}'
+    else:
+        ws['J5'] = f'Средняя стоимость квадратного метра за дату {date}'
+    cell = ws['K10']
+    fill =   PatternFill(fill_type='solid', fgColor='FF0000')
+    cell.fill = fill
+    ws['L10']="30% выше рынка"
+    cell = ws['K11']
+    fill =   PatternFill(fill_type='solid', fgColor='00FF00')
+    cell.fill = fill
+    ws['L11']="30% ниже рынка"
+    wb.save("buf.xlsx")
 
 #метод для расчета средней цены
 def return_avg_price(c1,c2,c3,c4,c5,cstud,df):  

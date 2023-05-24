@@ -11,25 +11,22 @@ from telegram import token
 # Создаем объект бота
 bot = telebot.TeleBot(token)
 
-# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    itembtn1 = types.KeyboardButton('/help')
-    itembtn2 = types.KeyboardButton('/getsortfile')
-    itembtn3 = types.KeyboardButton('/getfile')
-    itembtn4 = types.KeyboardButton('/sortbysettings')
-    markup.add(itembtn1,itembtn2,itembtn3,itembtn4)
+    itembtn1 = types.KeyboardButton('помощь')  # Заменяем текст команды /help на "помощь"
+    itembtn2 = types.KeyboardButton('отсортированный файл')
+    itembtn3 = types.KeyboardButton('сегодняшний файл')
+    itembtn4 = types.KeyboardButton('сортировка по критериям')
+    markup.add(itembtn1, itembtn2, itembtn3, itembtn4)
     bot.send_message(message.chat.id, 'Привет, я бот!', reply_markup=markup)
 
-
-# Обработчик команды /help
-@bot.message_handler(commands=['help'])
+@bot.message_handler(func=lambda message: message.text == 'помощь')
 def help_message(message):
-    bot.send_message(message.chat.id, 'Я могу помочь тебе вот в чем: \n\n 1) команда /getfile отправит файл за текущий день \n\n 2) команда /getsortfile отправит отсортированный по критериям файл за нужный день(зеленым цветом выделены выгодные квартиры, красным невыгодные) \n\n 3)команда /sortbysettings позволяет отсортировать файл за текущий день')
+    bot.send_message(message.chat.id, 'Я могу помочь тебе вот в чем:\n\n1) команда "сегодняшний файл" отправит файл за текущий день\n\n2) команда "отсортированный файл" отправит отсортированный по критериям файл за нужный день (зеленым цветом выделены квартиры на 30% дешевлет средней по рынку, красным квартиры дороже чем средние по рынку на 30%)\n\n3) команда "сортировка по критериям" позволяет отсортировать файл за текущий день')
 
 # Обработчик команды /getsortfile
-@bot.message_handler(commands=['getsortfile'])
+@bot.message_handler(func=lambda message: message.text == 'отсортированный файл')
 def handle_get_sort_file(message):
     get_sort_file(message)
 
@@ -40,65 +37,69 @@ def get_sort_file(message):
 
 def get_date(message):
     date = message.text
-    bot.send_message(message.chat.id, "Выберите город: \n1) Зеленодольск\n2) Казань\n3) Москва\n4) Новосибирск\n\n(Введите цифру соответствующую городу)")
-    bot.register_next_step_handler(message, lambda city_message: get_city(city_message, date))
+    keyboard = get_city_keyboard(date)
+    bot.send_message(message.chat.id, "Выберите город:", reply_markup=keyboard)
 
-def get_city(city_message, date):
-    city = city_message.text
-    if city=='1':
-        name_file = f"{date}.zelenodolsk.xlsx"
-        try:
-            with open(name_file, 'rb') as file:
-                arrPrice = sort_doc(file)
-                with open("buf.xlsx", 'rb') as file1:
-                    bot.send_document(city_message.chat.id, file1)
-                    bot.send_message(city_message.chat.id, f"Вот файл {name_file}")
-        except FileNotFoundError:
-            bot.send_message(city_message.chat.id, f"Файл {name_file} не найден")
-            get_sort_file(city_message)
-    elif city=='2':
-        name_file = f"{date}.kazan.xlsx"
-        try:
-            with open(name_file, 'rb') as file:
-                arrPrice = sort_doc(file)
-                with open("buf.xlsx", 'rb') as file1:
-                    bot.send_document(city_message.chat.id, file1)
-                    bot.send_message(city_message.chat.id, f"Вот файл {name_file}")
-        except FileNotFoundError:
-            bot.send_message(city_message.chat.id, f"Файл {name_file} не найден")
-            get_sort_file(city_message)
-    elif city=='3':
-        name_file = f"{date}.moskva.xlsx"
-        try:
-            with open(name_file, 'rb') as file:
-                arrPrice = sort_doc(file)
-                with open("buf.xlsx", 'rb') as file1:
-                    bot.send_document(city_message.chat.id, file1)
-                    bot.send_message(city_message.chat.id, f"Вот файл {name_file}")
-        except FileNotFoundError:
-            bot.send_message(city_message.chat.id, f"Файл {name_file} не найден")
-            get_sort_file(city_message)
-    elif city=='4':
-        name_file = f"{date}.novosibirsk.xlsx"
-        try:
-            with open(name_file, 'rb') as file:
-                arrPrice = sort_doc(file)
-                with open("buf.xlsx", 'rb') as file1:
-                    bot.send_document(city_message.chat.id, file1)
-                    bot.send_message(city_message.chat.id, f"Вот файл {name_file}")
-        except FileNotFoundError:
-            bot.send_message(city_message.chat.id, f"Файл {name_file} не найден")
-            get_sort_file(city_message)
-    else:
-        bot.send_message(city_message.chat.id, "Неверный номер города")
-        get_sort_file(city_message)
+def get_city_keyboard(date):
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        types.InlineKeyboardButton(text='Зеленодольск', callback_data=f'city_{date}.zelenodolsk'),
+        types.InlineKeyboardButton(text='Казань', callback_data=f'city_{date}.kazan'),
+        types.InlineKeyboardButton(text='Москва', callback_data=f'city_{date}.moskva'),
+        types.InlineKeyboardButton(text='Новосибирск', callback_data=f'city_{date}.novosibirsk')
+    ]
+    keyboard.add(*buttons)
+    return keyboard
 
+# Обработчик команды /getfile
+@bot.message_handler(func=lambda message: message.text == 'сегодняшний файл')
+def handle_get_file(message):
+    get_file(message)
 
-         
+def get_file(message):
+    keyboard = get_city_keyboard_today(date=AvitoParser().get_date())
+    bot.send_message(message.chat.id, "Выберите город:", reply_markup=keyboard)
 
-#сортировки разными методами 
+def get_city_keyboard_today(date):
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        types.InlineKeyboardButton(text='Зеленодольск', callback_data=f'file_{date}.zelenodolsk'),
+        types.InlineKeyboardButton(text='Казань', callback_data=f'file_{date}.kazan'),
+        types.InlineKeyboardButton(text='Москва', callback_data=f'file_{date}.moskva'),
+        types.InlineKeyboardButton(text='Новосибирск', callback_data=f'file_{date}.novosibirsk')
+    ]
+    keyboard.add(*buttons)
+    return keyboard
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback_query(call):
+    if call.message:
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    if call.data.startswith('city_'):
+        get_city(call.data[5:], call.message)
+    elif call.data.startswith('file_'):
+        get_today_file(call.data[5:], call.message)
+
+def get_city(data, message):
+    nameFile = data + '.xlsx'
+    try:
+        with open(nameFile, 'rb') as f:
+            sort_doc(f, data[:10:])
+            with open("buf.xlsx", 'rb') as f:
+                bot.send_document(message.chat.id, f)
+    except FileNotFoundError:
+        bot.send_message(message.chat.id, f"Файл {nameFile} не найден, ошибка при обработке файла")
+
+def get_today_file(data, message):
+    bot.send_message(message.chat.id, f"Открыт файл сегодня {data}.xlsx")
+    nameFile = data + '.xlsx'
+    try:
+        with open(nameFile, 'rb') as f:
+            bot.send_document(message.chat.id, f)
+    except FileNotFoundError:
+        bot.send_message(message.chat.id, f"Файл {nameFile} не найден")
 # Обработчик команды /sortbysettings
-@bot.message_handler(commands=['sortbysettings'])
+@bot.message_handler(func=lambda message: message.text == 'сортировка по критериям')
 def get_sort_file_by_settings(message):
     get_sort_file_settings(message)   
 
@@ -127,51 +128,7 @@ def get_file_sort(message):
                     bot.send_message(message.chat.id,otvet)
     except Exception as e:
         bot.send_message(message.chat.id, 'Ошибка при отправке файла: {}'.format(str(e)))
-        
 
-#-----------------
-# Обработчик команды /getfile
-@bot.message_handler(commands=['getfile'])
-def get_file(message):
-    bot.send_message(message.chat.id,"Выберите город: \n 1) Зеленодольск \n 2) Казань \n 3) Москва \n 4) Новосибирск \n\n (Необходимо ввести цифру)")
-    bot.register_next_step_handler(message, get_file_sity)
-
-def get_file_sity(message):
-    numberSity = message.text
-    if numberSity=='1':
-        sity = 'zelenodolsk'
-        nameFile = AvitoParser().get_name_xlsx(sity=sity)
-        try:
-            with open (nameFile,'rb') as f:
-                bot.send_document(message.chat.id,f)
-        except Exception as e:
-            bot.send_message(message.chat.id, 'Ошибка при отправке файла: {}'.format(str(e)))
-    elif numberSity=='2':
-        sity = 'kazan'
-        nameFile = AvitoParser().get_name_xlsx(sity=sity)
-        try:
-            with open (nameFile,'rb') as f:
-                bot.send_document(message.chat.id,f)
-        except Exception as e:
-            bot.send_message(message.chat.id, 'Ошибка при отправке файла: {}'.format(str(e)))
-    elif numberSity=='3':
-        sity = 'moskva'
-        nameFile = AvitoParser().get_name_xlsx(sity=sity)
-        try:
-            with open (nameFile,'rb') as f:
-                bot.send_document(message.chat.id,f)
-        except Exception as e:
-            bot.send_message(message.chat.id, 'Ошибка при отправке файла: {}'.format(str(e)))
-    elif numberSity=='4':
-        sity = 'novosibirsk'
-        nameFile = AvitoParser().get_name_xlsx(sity=sity)
-        try:
-            with open (nameFile,'rb') as f:
-                bot.send_document(message.chat.id,f)
-        except Exception as e:
-            bot.send_message(message.chat.id, 'Ошибка при отправке файла: {}'.format(str(e)))
-    else:
-        bot.send_message(message.chat.id,"Вы ввели неверный номер города")
 #----------------
 
 def runBot():
@@ -181,15 +138,15 @@ def cronTask():
     try:
         AvitoParser().collect_data()
     except Exception as e:
-            print('Ошибка при парсинге: {}'.format(str(e)))
+        print('Ошибка при парсинге: {}'.format(str(e)))
 
 def runScheluders():
-    schedule.every().day.at('12:05').do(cronTask)
+    schedule.every().day.at('01:30').do(cronTask)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     t1 = threading.Thread(target=runBot)
     t2 = threading.Thread(target=runScheluders)
     t1.start()
